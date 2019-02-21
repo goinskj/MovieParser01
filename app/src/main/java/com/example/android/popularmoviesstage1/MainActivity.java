@@ -195,12 +195,17 @@ public class MainActivity extends AppCompatActivity
         @Override
         protected void onPostExecute(ArrayList<MovieItem> movieData) {
             mLoadingIndicator.setVisibility(View.INVISIBLE);
-            if (movieData.size() > 0) {
-                showMovieDataView();
-                mMoviesAdapter.setMovieData(movieData);
+            if (movieData != null) {
+                if (movieData.size() > 0) {
+                    showMovieDataView();
+                    mMoviesAdapter.setMovieData(movieData);
+                } else {
+                    showErrorMessage();
+                }
             } else {
                 showErrorMessage();
             }
+
         }
     }
 

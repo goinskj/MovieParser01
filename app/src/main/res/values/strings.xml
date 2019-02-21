@@ -28,7 +28,7 @@
     <string name="action_sort_top_rated">Top Rated</string>
 
     <string name="error_message">
-        An error has occurred. Please try again by clicking REFRESH.
+        An error has occurred. Please try again by refreshing.
     </string>
 
     <string name="error_message_detail">
@@ -39,7 +39,7 @@
 
     <!--api key for querying movie data-->
     <string name="movies_query_api">
-        xxxxxxxxxxxxxxxxxxxxxx
+        xxxxxxxxxxxxxxxxxxx
     </string>
 
     <!--string key for sorting movie data by most popular-->
