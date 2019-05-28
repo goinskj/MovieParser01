@@ -3,6 +3,7 @@
     package="com.example.android.popularmoviesstage1">
 
     <uses-permission android:name="android.permission.INTERNET" />
+
     <application
         android:allowBackup="true"
         android:icon="@mipmap/ic_launcher"
@@ -11,14 +12,50 @@
         android:supportsRtl="true"
         android:theme="@style/AppTheme"
         android:usesCleartextTraffic="true">
-        <activity android:name=".MovieDetail"></activity>
+
+        <!--The manifest entry for our MainActivity. Each Activity requires a manifest entry-->
         <activity android:name=".MainActivity">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
-
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
+
+        <!--The manifest entry for our DetailActivity. Each Activity requires a manifest entry-->
+        <activity
+            android:name=".MovieDetail"
+            android:label="@string/title_activity_detail"
+            android:parentActivityName=".MainActivity">
+            <meta-data
+                android:name="android.support.PARENT_ACTIVITY"
+                android:value=".MainActivity"/>
+        </activity>
+
+        <!--The manifest entry for our SettingsActivity. Each Activity requires a manifest entry-->
+        <activity
+            android:name=".SettingsActivity"/>
+
+        <!-- Our ContentProvider -->
+        <provider
+            android:name=".data.MoviesProvider"
+            android:authorities="@string/content_authority"
+            android:exported="false"/>
+
+        <!--This is required for immediate syncs -->
+        <service
+            android:name=".sync.MoviesSyncIntentService"
+            android:exported="false" />
+
+        <!-- This is the Service declaration used in conjunction with FirebaseJobDispatcher -->
+        <service
+            android:name=".sync.MoviesFirebaseJobService"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="com.firebase.jobdispatcher.ACTION_EXECUTE"/>
+            </intent-filter>
+        </service>
+
+
     </application>
 
 </manifest>

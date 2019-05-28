@@ -16,9 +16,12 @@
 
 package com.example.android.popularmoviesstage1;
 
-import android.content.Context;
 import android.content.Intent;
-import android.os.AsyncTask;
+import android.database.Cursor;
+import android.net.Uri;
+import android.support.v4.app.LoaderManager;
+import android.support.v4.content.CursorLoader;
+import android.support.v4.content.Loader;
 import android.support.v7.app.AppCompatActivity;
 import android.os.Bundle;
 import android.support.v7.widget.GridLayoutManager;
@@ -28,27 +31,55 @@ import android.view.Menu;
 import android.view.MenuInflater;
 import android.view.MenuItem;
 import android.view.View;
-import android.widget.GridLayout;
-import android.widget.GridView;
-import android.widget.ImageView;
 import android.widget.ProgressBar;
 import android.widget.TextView;
 
-import com.example.android.popularmoviesstage1.utilities.MovieJsonUtils;
-import com.example.android.popularmoviesstage1.utilities.NetworkUtils;
+import com.example.android.popularmoviesstage1.data.MovieContract;
+import com.example.android.popularmoviesstage1.sync.MovieSyncUtils;
 
-import java.net.URL;
-import java.util.ArrayList;
-
-public class MainActivity extends AppCompatActivity
-        implements MoviesAdapter.MoviesAdapterOnClickHandler {
+public class MainActivity extends AppCompatActivity implements
+        LoaderManager.LoaderCallbacks<Cursor>,
+        MoviesAdapter.MoviesAdapterOnClickHandler {
 
     private static final String TAG = MainActivity.class.getSimpleName();
 
+    /*
+     * The columns of data that we are interested in displaying within our MainActivity's list of
+     * movie data.
+     */
+    public static final String[] MAIN_MOVIE_PROJECTION = {
+            MovieContract.MovieEntry.COLUMN_MOVIE_ID,
+            MovieContract.MovieEntry.COLUMN_MOVIE_TITLE,
+            MovieContract.MovieEntry.COLUMN_OVERVIEW,
+            MovieContract.MovieEntry.COLUMN_POSTER_PATH,
+            MovieContract.MovieEntry.COLUMN_RELEASE_DATE,
+            MovieContract.MovieEntry.COLUMN_VOTE_AVERAGE,
+    };
+
+    /*
+     * We store the indices of the values in the array of Strings above to more quickly be able to
+     * access the data from our query. If the order of the Strings above changes, these indices
+     * must be adjusted to match the order of the Strings.
+     */
+    public static final int INDEX_MOVIE_ID = 0;
+    public static final int INDEX_MOVIE_TITLE = 1;
+    public static final int INDEX_MOVIE_OVERVIEW = 2;
+    public static final int INDEX_POSTER_PATH = 3;
+    public static final int INDEX_RELEASE_DATE = 4;
+    public static final int INDEX_VOTE_AVERAGE = 5;
+
+    /*
+     * This ID will be used to identify the Loader responsible for loading our movie data. In
+     * some cases, one Activity can deal with many Loaders. However, in our case, there is only one.
+     * We will still use this ID to initialize the loader and create the loader for best practice.
+     * Please note that 44 was chosen arbitrarily. You can use whatever number you like, so long as
+     * it is unique and consistent.
+     */
+    private static final int ID_MOVIE_LOADER = 44;
+
     private RecyclerView mRecyclerView;
     private MoviesAdapter mMoviesAdapter;
-
-    private TextView mErrorMessageDisplay;
+    private int mPosition = RecyclerView.NO_POSITION;
 
     private ProgressBar mLoadingIndicator;
 
@@ -56,15 +87,22 @@ public class MainActivity extends AppCompatActivity
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
+        getSupportActionBar().setElevation(0f);
 
         /*
          * Using findViewById, we get a reference to our RecyclerView from xml. This allows us to
-         * do things like set the adapter of the GridLayout and toggle the visibility.
+         * do things like set the adapter of the RecyclerView and toggle the visibility.
          */
         mRecyclerView = (RecyclerView) findViewById(R.id.rv_movies);
 
-        /* This TextView is used to display errors and will be hidden if there are no errors */
-        mErrorMessageDisplay = (TextView) findViewById(R.id.tv_error_message_display);
+        /*
+         * The ProgressBar that will indicate to the user that we are loading data. It will be
+         * hidden when no data is loading.
+         *
+         * Please note: This so called "ProgressBar" isn't a bar by default. It is more of a
+         * circle. We didn't make the rules (or the names of Views), we just follow them.
+         */
+        mLoadingIndicator = (ProgressBar) findViewById(R.id.pb_loading_indicator);
 
         /*
          * GridLayoutManager can support a grid like layout for recyclerview.
@@ -73,6 +111,7 @@ public class MainActivity extends AppCompatActivity
                 = new GridLayoutManager(this, 2);
         layoutManager.setOrientation(LinearLayoutManager.VERTICAL);
 
+        /* setLayoutManager associates the LayoutManager we created above with our RecyclerView */
         mRecyclerView.setLayoutManager(layoutManager);
 
         /*
@@ -90,43 +129,175 @@ public class MainActivity extends AppCompatActivity
         /* Setting the adapter attaches it to the recyclerview in our layout. */
         mRecyclerView.setAdapter(mMoviesAdapter);
 
+        showLoading();
+
         /*
-         * The ProgressBar that will indicate to the user that we are loading data. It will be
-         * hidden when no data is loading.
-         *
-         * Please note: This so called "ProgressBar" isn't a bar by default. It is more of a
-         * circle. We didn't make the rules (or the names of Views), we just follow them.
+         * Ensures a loader is initialized and active. If the loader doesn't already exist, one is
+         * created and (if the activity/fragment is currently started) starts the loader. Otherwise
+         * the last created loader is re-used.
          */
-        mLoadingIndicator = (ProgressBar) findViewById(R.id.pb_loading_indicator);
+        getSupportLoaderManager().initLoader(ID_MOVIE_LOADER, null, this);
 
-        /* Once all of our views are setup, we can load the movie data. */
-        loadMovieData(getResources().getString(R.string.popular_movies));
+        MovieSyncUtils.initialize(this);
 
     }
 
     /**
-     * This method will tell some background method to get the movie data in the background with
-     * the sort key as a parameter.
-     */
-    private void loadMovieData(String sortView) {
-        showMovieDataView();
-        new FetchMoviesTask().execute(sortView);
-    }
-
-    /**
-     * This method is overridden by our MainActivity class in order to handle RecyclerView item
-     * clicks.
+     * Called by the {@link android.support.v4.app.LoaderManagerImpl} when a new Loader needs to be
+     * created. This Activity only uses one loader, so we don't necessarily NEED to check the
+     * loaderId, but this is certainly best practice.
      *
-     * @param itemData The product data for the day that was clicked
+     * @param loaderId The loader ID for which we need to create a loader
+     * @param bundle   Any arguments supplied by the caller
+     * @return A new Loader instance that is ready to start loading.
      */
     @Override
-    public void onClick(Bundle itemData) {
-        Context context = this;
-        Class destinationClass = MovieDetail.class;
-        Intent intentToStartDetailActivity = new Intent(context, destinationClass);
-        intentToStartDetailActivity.putExtra(Intent.EXTRA_COMPONENT_NAME, itemData);
-        startActivity(intentToStartDetailActivity);
+    public Loader<Cursor> onCreateLoader(int loaderId, Bundle bundle) {
+
+
+        switch (loaderId) {
+
+            case ID_MOVIE_LOADER:
+                /* URI for all rows of movie data in our movie table */
+                Uri movieQueryUri = MovieContract.MovieEntry.CONTENT_URI;
+
+                return new CursorLoader(this,
+                        movieQueryUri,
+                        MAIN_MOVIE_PROJECTION,
+                        null,
+                        null,
+                        null);
+
+            default:
+                throw new RuntimeException("Loader Not Implemented: " + loaderId);
+        }
     }
+
+    /**
+     * Called when a Loader has finished loading its data.
+     *
+     * NOTE: There is one small bug in this code. If no data is present in the cursor to do an
+     * initial load being performed with no access to internet, the loading indicator will show
+     * indefinitely, until data is present from the ContentProvider. This will be fixed in a
+     * future version of the course.
+     *
+     * @param loader The Loader that has finished.
+     * @param data   The data generated by the Loader.
+     */
+    @Override
+    public void onLoadFinished(Loader<Cursor> loader, Cursor data) {
+
+        mMoviesAdapter.swapCursor(data);
+        if (mPosition == RecyclerView.NO_POSITION) mPosition = 0;
+        mRecyclerView.smoothScrollToPosition(mPosition);
+        if (data.getCount() != 0) showMovieDataView();
+    }
+
+    /**
+     * Called when a previously created loader is being reset, and thus making its data unavailable.
+     * The application should at this point remove any references it has to the Loader's data.
+     *
+     * @param loader The Loader that is being reset.
+     */
+    @Override
+    public void onLoaderReset(Loader<Cursor> loader) {
+        /*
+         * Since this Loader's data is now invalid, we need to clear the Adapter that is
+         * displaying the data.
+         */
+        mMoviesAdapter.swapCursor(null);
+    }
+
+//    public class FetchMoviesTask extends AsyncTask<String, Void, ArrayList<MovieItem>> {
+//
+//        @Override
+//        protected void onPreExecute() {
+//            super.onPreExecute();
+//            mLoadingIndicator.setVisibility(View.VISIBLE);
+//        }
+//
+//        @Override
+//        protected ArrayList<MovieItem> doInBackground(String... params) {
+//
+//            /* If there's no sort preference, there's nothing to look up. */
+//            if (params.length == 0) {
+//                return null;
+//            }
+//
+//            String sortPref = params[0];
+//            String apiKey = getResources().getString(R.string.movies_query_api);
+//            URL moviesRequestUrl = NetworkUtils.buildQueryUrl(sortPref, apiKey);
+//
+//            try {
+//                String jsonMovieResponse = NetworkUtils
+//                        .getResponseFromHttpUrl(moviesRequestUrl);
+//
+//                ArrayList<MovieItem> jsonMovieData = MovieJsonUtils
+//                        .getMovieStringsFromJson(MainActivity.this, jsonMovieResponse);
+//
+//                return jsonMovieData;
+//
+//            } catch (Exception e) {
+//                e.printStackTrace();
+//                return null;
+//            }
+//        }
+//
+//        @Override
+//        protected void onPostExecute(ArrayList<MovieItem> movieData) {
+//            mLoadingIndicator.setVisibility(View.INVISIBLE);
+//            if (movieData != null) {
+//                if (movieData.size() > 0) {
+//                    showMovieDataView();
+//                    mMoviesAdapter.setMovieData(movieData);
+//                } else {
+//                    showErrorMessage();
+//                }
+//            } else {
+//                showErrorMessage();
+//            }
+//
+//        }
+//    }
+
+//    /**
+//     * This method will tell some background method to get the movie data in the background with
+//     * the sort key as a parameter.
+//     */
+//    private void loadMovieData(String sortView) {
+//        showMovieDataView();
+//        new FetchMoviesTask().execute(sortView);
+//    }
+
+//    /**
+//     * This method is overridden by our MainActivity class in order to handle RecyclerView item
+//     * clicks.
+//     *
+//     * @param itemData The product data for the day that was clicked
+//     */
+//    @Override
+//    public void onClick(Bundle itemData) {
+//        Context context = this;
+//        Class destinationClass = MovieDetail.class;
+//        Intent intentToStartDetailActivity = new Intent(context, destinationClass);
+//        intentToStartDetailActivity.putExtra(Intent.EXTRA_COMPONENT_NAME, itemData);
+//        startActivity(intentToStartDetailActivity);
+//    }
+
+    /**
+     * This method is for responding to clicks from our list.
+     *
+     * @param id Interger that represents the id of the movie.
+     * @see MovieContract.MovieEntry#COLUMN_MOVIE_ID
+     */
+    @Override
+    public void onClick(int id) {
+        Intent movieDetailIntent = new Intent(MainActivity.this, MovieDetail.class);
+        Uri uriForIdClicked = MovieContract.MovieEntry.buildMovieUriWithId(id);
+        movieDetailIntent.setData(uriForIdClicked);
+        startActivity(movieDetailIntent);
+    }
+
 
     /**
      * This method will make the View for the product data visible and
@@ -136,77 +307,25 @@ public class MainActivity extends AppCompatActivity
      * need to check whether each view is currently visible or invisible.
      */
     private void showMovieDataView() {
-        /* First, make sure the error is invisible */
-        mErrorMessageDisplay.setVisibility(View.INVISIBLE);
-        /* Then, make sure the movie data is visible */
+        /* Then, hide the loading indicator */
+        mLoadingIndicator.setVisibility(View.INVISIBLE);
+        /* Finaly, make sure the movie data is visible */
         mRecyclerView.setVisibility(View.VISIBLE);
 
     }
 
     /**
-     * This method will make the error message visible and hide the movie data
-     * View.
+     * This method will make the loading indicator visible and hide the weather View and error
+     * message.
      * <p>
-     * Since it is okay to redundantly set the visibility of a View, we don't
-     * need to check whether each view is currently visible or invisible.
+     * Since it is okay to redundantly set the visibility of a View, we don't need to check whether
+     * each view is currently visible or invisible.
      */
-    private void showErrorMessage() {
-        /* First, hide the currently visible data */
+    private void showLoading() {
+        /* Then, hide the weather data */
         mRecyclerView.setVisibility(View.INVISIBLE);
-        /* Then, show the error */
-        mErrorMessageDisplay.setVisibility(View.VISIBLE);
-    }
-
-    public class FetchMoviesTask extends AsyncTask<String, Void, ArrayList<MovieItem>> {
-
-        @Override
-        protected void onPreExecute() {
-            super.onPreExecute();
-            mLoadingIndicator.setVisibility(View.VISIBLE);
-        }
-
-        @Override
-        protected ArrayList<MovieItem> doInBackground(String... params) {
-
-            /* If there's no sort preference, there's nothing to look up. */
-            if (params.length == 0) {
-                return null;
-            }
-
-            String sortPref = params[0];
-            String apiKey = getResources().getString(R.string.movies_query_api);
-            URL moviesRequestUrl = NetworkUtils.buildQueryUrl(sortPref, apiKey);
-
-            try {
-                String jsonMovieResponse = NetworkUtils
-                        .getResponseFromHttpUrl(moviesRequestUrl);
-
-                ArrayList<MovieItem> jsonMovieData = MovieJsonUtils
-                        .getMovieStringsFromJson(MainActivity.this, jsonMovieResponse);
-
-                return jsonMovieData;
-
-            } catch (Exception e) {
-                e.printStackTrace();
-                return null;
-            }
-        }
-
-        @Override
-        protected void onPostExecute(ArrayList<MovieItem> movieData) {
-            mLoadingIndicator.setVisibility(View.INVISIBLE);
-            if (movieData != null) {
-                if (movieData.size() > 0) {
-                    showMovieDataView();
-                    mMoviesAdapter.setMovieData(movieData);
-                } else {
-                    showErrorMessage();
-                }
-            } else {
-                showErrorMessage();
-            }
-
-        }
+        /* Finally, show the loading indicator */
+        mLoadingIndicator.setVisibility(View.VISIBLE);
     }
 
     @Override
@@ -223,15 +342,13 @@ public class MainActivity extends AppCompatActivity
     public boolean onOptionsItemSelected(MenuItem item) {
         int id = item.getItemId();
 
-        if (id == R.id.sort_popular) {
-            mMoviesAdapter.setMovieData(null);
-            loadMovieData(getResources().getString(R.string.popular_movies));
+        if (id == R.id.action_settings) {
+            startActivity(new Intent(this, SettingsActivity.class));
             return true;
         }
 
-        if (id == R.id.sort_rated) {
-            mMoviesAdapter.setMovieData(null);
-            loadMovieData(getResources().getString(R.string.top_rated_movies));
+        if (id == R.id.action_favorites) {
+            //start activity which shows list of movies that have been favorited.
             return true;
         }
 

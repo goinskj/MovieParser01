@@ -1,101 +1,36 @@
 <?xml version="1.0" encoding="utf-8"?>
-<FrameLayout
-    xmlns:android="http://schemas.android.com/apk/res/android"
-    android:layout_width="match_parent"
-    android:layout_height="match_parent">
+<!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+  - This layout displays the complete details of a given day's weather, including the date, a    -
+  - weather icon and description, the high and low temperature, the humidity, pressure, and the  -
+  - wind speed and direction.                                                                    -
+  -                                                                                              -
+  - In order to use Android's data binding capabilities, (to avoid having to type findViewById   -
+  - over and over again) we wrap this layout in a <layout></layout> tag.                         -
+  -                                                                                              -
+  - Note that this is the PORTRAIT version of the layout.                                        -
+  - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
 
-    <ScrollView
+<layout xmlns:android="http://schemas.android.com/apk/res/android">
+
+    <LinearLayout
         android:layout_width="match_parent"
-        android:layout_height="wrap_content">
+        android:layout_height="match_parent"
+        android:orientation="vertical">
 
-        <FrameLayout
+        <!-- - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -
+          - To efficiently re-use complete layouts, you can use the <include/> tags to embed     -
+          - another complete layout inside the current layout. In Sunshine, this allows us to    -
+          - conveniently create layouts for both the portrait and landscape layouts for the      -
+          - DetailActivity. If we hadn't have used <include/> tags, we would have duplicated     -
+          - layout code all over the place, and any changes we wanted to make, we'd have to make -
+          - twice.                                                                               -
+          - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - - -->
+        <include
+            android:id="@+id/primary_info"
+            layout="@layout/primary_movie_info"
             android:layout_width="match_parent"
-            android:layout_height="match_parent">
+            android:layout_height="0dp"
+            android:layout_weight="1"/>
 
-            <LinearLayout
-                android:layout_width="match_parent"
-                android:layout_height="match_parent"
-                android:orientation="vertical"
-                android:id="@+id/ll_main">
-
-                <TextView
-                    android:id="@+id/tv_title"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/testing_place_holder"
-                    android:textSize="50sp"
-                    android:paddingLeft="20dp"
-                    android:paddingVertical="30dp"
-                    android:gravity="center_vertical"
-                    android:background="@color/colorAccent"
-                    android:textColor="@color/colorTitleDetail"/>
-
-                <LinearLayout
-                    android:id="@+id/image_year_container"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:orientation="horizontal">
-
-                    <ImageView
-                        android:id="@+id/iv_detailImage"
-                        android:layout_width="180dp"
-                        android:layout_height="200dp"
-                        android:contentDescription="movie_image_detail"
-                        android:src="@mipmap/ic_launcher"
-                        android:layout_marginTop="10dp"
-                        android:layout_marginLeft="10dp"
-                        android:layout_marginBottom="10dp"/>
-
-                    <LinearLayout
-                        android:id="@+id/date_rating_container"
-                        android:layout_width="180dp"
-                        android:layout_height="200dp"
-                        android:orientation="vertical"
-                        android:layout_marginTop="10dp"
-                        android:layout_marginLeft="30dp"
-                        android:layout_marginBottom="10dp">
-
-                        <TextView
-                            android:id="@+id/tv_date"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/testing_place_holder"
-                            android:textSize="25sp"
-                            android:layout_marginTop="10dp"/>
-
-                        <TextView
-                            android:id="@+id/tv_rating"
-                            android:layout_width="wrap_content"
-                            android:layout_height="wrap_content"
-                            android:text="@string/testing_place_holder"
-                            android:textSize="15sp"
-                            android:textColor="@color/colorPrimary"
-                            android:layout_marginTop="20dp"/>
-
-                    </LinearLayout>
-
-                </LinearLayout>
-
-                <TextView
-                    android:id="@+id/tv_overview"
-                    android:layout_width="match_parent"
-                    android:layout_height="wrap_content"
-                    android:text="@string/testing_place_holder"
-                    android:layout_margin="10dp"/>
-
-            </LinearLayout>
-
-            <TextView
-                android:id="@+id/tv_error_message_display"
-                android:layout_width="wrap_content"
-                android:layout_height="wrap_content"
-                android:padding="16dp"
-                android:text="@string/error_message_detail"
-                android:textSize="20sp"
-                android:visibility="invisible" />
-
-        </FrameLayout>
-
-    </ScrollView>
-
-</FrameLayout>
+    </LinearLayout>
+</layout>

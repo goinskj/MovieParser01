@@ -22,10 +22,59 @@
     <!--or something similar.-->
     <string name="app_name">Movies 1</string>
 
+
+    <!-- - - - - - - - - - - - - -->
+    <!-- Place Holders-->
+    <!-- - - - - - - - - - - - - -->
+
+    <string name="title_ph">Movie Title</string>
+    <string name="date_ph">Release Date</string>
+    <string name="rating_ph">Rating</string>
+    <string name="overview_ph">Overview</string>
+
+
+
+
+
+    <!-- - - - - - - - - - - - - -->
+    <!-- Used by MoviesPreferences-->
+    <!-- - - - - - - - - - - - - -->
+
+    <!-- Key name for sort preference in SharedPreferences -->
+    <string name="pref_sort_label">Sort</string>
+
+    <!-- Label for popular option in sort preference -->
+    <string name="pref_sort_label_popular">Popular</string>
+
+    <!-- Label for rated option in sort preference -->
+    <string name="pref_sort_label_Rated">Rated</string>
+
+    <!-- Key name for sort preference in SharedPreferences -->
+    <string name="pref_sort_key" translatable="false">sort</string>
+
+    <!-- Value in SharedPreferences for rated sort option -->
+    <string name="pref_rated" translatable="false">top_rated</string>
+
+    <!-- Value in SharedPreferences for popular sort option -->
+    <string name="pref_popular" translatable="false">popular</string>
+
+
+    <!-- - - - - - - - - - - - - -->
+    <!-- Menu Strings-->
+    <!-- - - - - - - - - - - - - -->
+
     <!--By convention, "action" denotes that this String will be used as the label for an Action,-->
     <!--typically from the action bar.  The ActionBar is limited real estate, so shorter is better.-->
-    <string name="action_sort_popular">Most Popular</string>
-    <string name="action_sort_top_rated">Top Rated</string>
+
+    <!--string key for favorites-->
+    <string name="action_favorites">Favorites</string>
+
+    <!--string key for settings-->
+    <string name="action_settings">Settings</string>
+
+    <!-- - - - - - - - - - - - - -->
+    <!-- Error Strings-->
+    <!-- - - - - - - - - - - - - -->
 
     <string name="error_message">
         An error has occurred. Please try again by refreshing.
@@ -36,25 +85,18 @@
     </string>
 
 
-
     <!--api key for querying movie data-->
-    <string name="movies_query_api">
-        xxxxxxxxxxxxxxxxxxx
-    </string>
+    <string name="movies_query_api">6fc68d2233de65e1fdec858ecdb517e2</string>
 
-    <!--string key for sorting movie data by most popular-->
-    <string name="popular_movies">
-        popular
-    </string>
+    <!-- Title of the SettingsActivity -->
+    <string name="title_activity_settings">Settings</string>
 
-    <!--string key for sorting movie data by most rated-->
-    <string name="top_rated_movies">
-        top_rated
-    </string>
+    <!-- Title of the DetailActivity -->
+    <string name="title_activity_detail">Details</string>
 
-    <!--string key for sorting movie data by most rated-->
-    <string name="testing_place_holder">
-        TESTING
-    </string>
+    <string name="content_authority">com.example.android.popularmoviesstage1</string>
+
+
+
 
 </resources>

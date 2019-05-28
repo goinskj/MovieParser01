@@ -17,8 +17,12 @@
 package com.example.android.popularmoviesstage1.utilities;
 
 
+import android.content.Context;
 import android.net.Uri;
 import android.util.Log;
+
+import com.example.android.popularmoviesstage1.R;
+import com.example.android.popularmoviesstage1.data.MoviesPreferences;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -36,13 +40,53 @@ public final class NetworkUtils {
     private static final String TAG = NetworkUtils.class.getSimpleName();
 
     /**
+     * Retrieves the proper URL to query for the weather data. The reason for both this method as
+     * well as {@link #buildQueryforHighestRatedSortUrl(String,String)} and
+     * {@link #buildQueryforPopularSortUrl(String, String)} is the following.
+     * <p>
+     * 1) You should be able to just use one method when you need to create the URL within the
+     * app instead of calling both methods. Also, by using the preferences, we mitigate the amount
+     * of pasthrough parameters allowing for cleaner code. We decide whether the sort is in the
+     * popular state or the rated state by checking the Shared Preferences.
+     *
+     * @param context used to access other Utility methods
+     * @return URL to query weather service
+     */
+    public static URL getUrl(Context context) {
+        if (MoviesPreferences.isPopular(context)) {
+            String sortQuery = context.getResources().getString(R.string.pref_popular);
+            String api = context.getResources().getString(R.string.movies_query_api);
+            return buildQueryforPopularSortUrl(sortQuery, api);
+        } else {
+            String sortQuery = context.getResources().getString(R.string.pref_rated);
+            String api = context.getResources().getString(R.string.movies_query_api);
+            return buildQueryforHighestRatedSortUrl(sortQuery, api);
+        }
+    }
+
+    /**
      * Builds the URL used to talk to the movie server using a sort type. This sort type is based
      * on the query capabilities of the movie provider that we are using.
      *
-     * @param sortQuery The type of sort that will be queried for.
      * @return The URL to use to query the movie server.
      */
-    public static URL buildQueryUrl(String sortQuery, String apiKey) {
+    public static URL buildQueryforPopularSortUrl(String sortQuery, String apiKey) {
+        String queryUrl = "http://api.themoviedb.org/3/movie/"+sortQuery+"?api_key="+apiKey;
+        Uri builtUri = Uri.parse(queryUrl);
+
+        URL url = null;
+        try {
+            url = new URL(builtUri.toString());
+        } catch (MalformedURLException e) {
+            e.printStackTrace();
+        }
+
+        Log.v(TAG, "Built URI " + url);
+
+        return url;
+    }
+
+    public static URL buildQueryforHighestRatedSortUrl(String sortQuery, String apiKey) {
         String queryUrl = "http://api.themoviedb.org/3/movie/"+sortQuery+"?api_key="+apiKey;
         Uri builtUri = Uri.parse(queryUrl);
 

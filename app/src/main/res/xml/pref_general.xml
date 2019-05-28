@@ -11,21 +11,16 @@
      See the License for the specific language governing permissions and
      limitations under the License.
 -->
-<!-- The menu found in the main multi-movie gridview  -->
-<menu xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:app="http://schemas.android.com/apk/res-auto"
-    xmlns:tools="http://schemas.android.com/tools"
-    tools:context=".MainActivity">
-    <item
-        android:id="@+id/action_settings"
-        android:orderInCategory="100"
-        android:title="@string/action_settings"
-        app:showAsAction="never"/>
+<PreferenceScreen xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent">
+
+    <ListPreference
+        android:defaultValue="@string/pref_popular"
+        android:entries="@array/pref_sort_options"
+        android:entryValues="@array/pref_sort_values"
+        android:key="@string/pref_sort_key"
+        android:title="@string/pref_sort_label" />
 
 
-    <item
-        android:id="@+id/action_favorites"
-        android:title="@string/action_favorites"
-        app:showAsAction="never"/>
-
-</menu>
+</PreferenceScreen>
