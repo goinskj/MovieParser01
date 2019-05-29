@@ -161,10 +161,17 @@ public class MainActivity extends AppCompatActivity implements
                 /* URI for all rows of movie data in our movie table */
                 Uri movieQueryUri = MovieContract.MovieEntry.CONTENT_URI;
 
+                /*
+                 * A SELECTION in SQL declares which rows you'd like to return. In our case, we
+                 * want all movie data from first onwards that is stored in our movie table.
+                 * We created a handy method to do that in our MovieEntry class.
+                 */
+                String selection = MovieContract.MovieEntry.getSqlSelectForMovies();
+
                 return new CursorLoader(this,
                         movieQueryUri,
                         MAIN_MOVIE_PROJECTION,
-                        null,
+                        selection,
                         null,
                         null);
 
